@@ -1,0 +1,15 @@
+# Compilados Java
+*.class
+
+# Carpeta de salida de compilación
+/bin/
+
+# Datos serializados generados por el programa
+/data/*.dat
+
+# Configuración local de VS Code
+.vscode/
+
+# Archivos temporales del sistema
+.DS_Store
+Thumbs.db
