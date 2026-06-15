@@ -16,7 +16,7 @@ import java.util.Objects;
  * Implementa IOperable para exponer operaciones comunes como embarcar y cancelar.
  * También implementa Serializable para permitir la persistencia en archivo.
  */
-public abstract class Vuelo implements IOperable, Serializable {
+public abstract class Vuelo implements IOperable, Comparable<Vuelo>, Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -257,6 +257,20 @@ public abstract class Vuelo implements IOperable, Serializable {
             throw new IllegalArgumentException("El campo " + campo + " no puede estar vacío.");
         }
         return valor.trim();
+    }
+
+    /**
+     * @brief Compara vuelos por número de vuelo.
+     *
+     * Define el orden natural de los vuelos usando el campo numero.
+     * Esto permite ordenar una lista de vuelos mediante Collections.sort().
+     *
+     * @param otro Otro vuelo a comparar.
+     * @return Valor negativo, cero o positivo según el orden alfabético del número.
+     */
+    @Override
+    public int compareTo(Vuelo otro) {
+        return this.numero.compareToIgnoreCase(otro.numero);
     }
 
     /**
