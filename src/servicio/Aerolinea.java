@@ -53,8 +53,13 @@ public class Aerolinea {
      * @brief Agrega un vuelo a la aerolínea.
      *
      * @param vuelo Vuelo a agregar.
+     * @throws IllegalArgumentException Si el vuelo es nulo.
      */
     public void agregarVuelo(Vuelo vuelo) {
+        if (vuelo == null) {
+            throw new IllegalArgumentException("El vuelo no puede ser nulo.");
+        }
+
         vuelos.add(vuelo);
     }
 
@@ -66,8 +71,13 @@ public class Aerolinea {
      *
      * @param persona Persona a registrar.
      * @return true si se registró correctamente, false si el DNI ya existía.
+     * @throws IllegalArgumentException Si la persona es nula.
      */
     public boolean registrarPersona(Persona persona) {
+        if (persona == null) {
+            throw new IllegalArgumentException("La persona no puede ser nula.");
+        }
+
         if (personasPorDni.containsKey(persona.getDni())) {
             return false;
         }
@@ -89,12 +99,19 @@ public class Aerolinea {
     /**
      * @brief Busca un vuelo por número.
      *
-     * @param numeroVuelo Número del vuelo.
+     * El número de vuelo se maneja como String porque en el modelo actual
+     * existen códigos como AR100, AR200 o CH300.
+     *
+     * @param numeroVuelo Número o código del vuelo.
      * @return Vuelo encontrado o null si no existe.
      */
-    public Vuelo buscarVueloPorNumero(int numeroVuelo) {
+    public Vuelo buscarVueloPorNumero(String numeroVuelo) {
+        if (numeroVuelo == null) {
+            return null;
+        }
+
         for (Vuelo vuelo : vuelos) {
-            if (vuelo.getNumeroVuelo() == numeroVuelo) {
+            if (vuelo.getNumero().equalsIgnoreCase(numeroVuelo.trim())) {
                 return vuelo;
             }
         }
@@ -110,10 +127,10 @@ public class Aerolinea {
      * duplicados automáticamente gracias a equals() y hashCode() de Persona.
      *
      * @param dniPasajero DNI del pasajero.
-     * @param numeroVuelo Número del vuelo.
+     * @param numeroVuelo Número o código del vuelo.
      * @throws VueloNoDisponibleException Si el vuelo no está disponible.
      */
-    public void reservarVuelo(int dniPasajero, int numeroVuelo) throws VueloNoDisponibleException {
+    public void reservarVuelo(int dniPasajero, String numeroVuelo) throws VueloNoDisponibleException {
         Persona persona = personasPorDni.get(dniPasajero);
 
         if (persona == null) {
@@ -136,7 +153,9 @@ public class Aerolinea {
         Pasajero pasajero = (Pasajero) persona;
         pasajero.reservarVuelo(vuelo);
 
-        pasajerosConReservaActiva.add(pasajero);
+        if (pasajero.tieneReservaActiva()) {
+            pasajerosConReservaActiva.add(pasajero);
+        }
     }
 
     /**
@@ -146,9 +165,9 @@ public class Aerolinea {
      * se lo elimina del HashSet correspondiente.
      *
      * @param dniPasajero DNI del pasajero.
-     * @param numeroVuelo Número del vuelo.
+     * @param numeroVuelo Número o código del vuelo.
      */
-    public void cancelarReserva(int dniPasajero, int numeroVuelo) {
+    public void cancelarReserva(int dniPasajero, String numeroVuelo) {
         Persona persona = personasPorDni.get(dniPasajero);
 
         if (!(persona instanceof Pasajero)) {
@@ -164,12 +183,12 @@ public class Aerolinea {
         }
 
         Pasajero pasajero = (Pasajero) persona;
-        boolean cancelada = pasajero.cancelarReserva(vuelo);
+        boolean cancelada = vuelo.cancelarReserva(pasajero);
 
         if (cancelada) {
             System.out.println("Reserva cancelada correctamente.");
 
-            if (!pasajero.tieneReservasActivas()) {
+            if (!pasajero.tieneReservaActiva()) {
                 pasajerosConReservaActiva.remove(pasajero);
             }
         } else {
@@ -277,7 +296,7 @@ public class Aerolinea {
         }
 
         for (Persona persona : pasajerosConReservaActiva) {
-            System.out.println(persona);
+            persona.mostrarInfo();
         }
     }
 
