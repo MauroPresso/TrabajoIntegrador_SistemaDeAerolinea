@@ -29,6 +29,11 @@ public class VueloNacional extends Vuelo {
         return provinciaDestino;
     }
 
+    /**
+     * @brief Establece la provincia de destino del vuelo nacional.
+     * @param provinciaDestino Nombre de la provincia de destino.
+     * @throws IllegalArgumentException Si el nombre de la provincia es inválido.
+     */
     public void setProvinciaDestino(String provinciaDestino) {
         if (provinciaDestino == null || provinciaDestino.trim().isEmpty()) {
             throw new IllegalArgumentException("La provincia de destino no puede estar vacía.");
