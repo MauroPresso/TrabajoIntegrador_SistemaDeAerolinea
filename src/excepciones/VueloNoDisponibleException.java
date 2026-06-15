@@ -18,6 +18,11 @@ package excepciones;
 public class VueloNoDisponibleException extends Exception {
 
     /**
+     * Para compatibilidad de serialización
+     */
+    private static final long serialVersionUID = 1L;
+
+    /**
      * @brief Constructor con mensaje descriptivo.
      *
      * @param mensaje Mensaje que explica el motivo por el cual el vuelo no está disponible.
