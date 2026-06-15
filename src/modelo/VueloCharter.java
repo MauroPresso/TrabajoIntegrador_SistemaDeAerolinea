@@ -32,6 +32,11 @@ public class VueloCharter extends Vuelo {
         return empresaContratante;
     }
 
+    /**
+     * @brief Establece la empresa contratante del vuelo charter.
+     * @param empresaContratante Nombre de la empresa contratante.
+     * @throws IllegalArgumentException Si el nombre de la empresa es inválido.
+     */
     public void setEmpresaContratante(String empresaContratante) {
         if (empresaContratante == null || empresaContratante.trim().isEmpty()) {
             throw new IllegalArgumentException("La empresa contratante no puede estar vacía.");
@@ -43,6 +48,11 @@ public class VueloCharter extends Vuelo {
         return costoTotal;
     }
 
+    /**
+    * @brief Establece el costo total del vuelo charter.
+    * @param costoTotal Costo total del vuelo.
+    * @throws IllegalArgumentException Si el costo total es negativo.
+    */
     public void setCostoTotal(double costoTotal) {
         if (costoTotal < 0) {
             throw new IllegalArgumentException("El costo total no puede ser negativo.");
