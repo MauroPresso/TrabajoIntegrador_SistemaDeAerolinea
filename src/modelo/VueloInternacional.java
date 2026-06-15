@@ -32,6 +32,11 @@ public class VueloInternacional extends Vuelo {
         return paisDestino;
     }
 
+    /**
+     * @brief Establece el país de destino del vuelo internacional.
+     * @param paisDestino Nombre del país de destino.
+     * @throws IllegalArgumentException Si el nombre del país es inválido.
+     */
     public void setPaisDestino(String paisDestino) {
         if (paisDestino == null || paisDestino.trim().isEmpty()) {
             throw new IllegalArgumentException("El país de destino no puede estar vacío.");
