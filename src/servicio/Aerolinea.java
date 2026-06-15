@@ -4,10 +4,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import comparadores.ComparadorVueloPorDestino;
 import comparadores.ComparadorVueloPorNumero;
 import excepciones.VueloNoDisponibleException;
+import modelo.EstadoVuelo;
 import modelo.Pasajero;
 import modelo.Persona;
 import modelo.Vuelo;
@@ -97,10 +100,15 @@ public class Aerolinea {
     }
 
     /**
-     * @brief Busca un vuelo por número.
+     * @brief Busca un vuelo por número usando Stream.
      *
      * El número de vuelo se maneja como String porque en el modelo actual
      * existen códigos como AR100, AR200 o CH300.
+     *
+     * Este método utiliza programación funcional mediante:
+     * - stream()
+     * - filter()
+     * - findFirst()
      *
      * @param numeroVuelo Número o código del vuelo.
      * @return Vuelo encontrado o null si no existe.
@@ -110,13 +118,10 @@ public class Aerolinea {
             return null;
         }
 
-        for (Vuelo vuelo : vuelos) {
-            if (vuelo.getNumero().equalsIgnoreCase(numeroVuelo.trim())) {
-                return vuelo;
-            }
-        }
-
-        return null;
+        return vuelos.stream()
+                .filter(vuelo -> vuelo.getNumero().equalsIgnoreCase(numeroVuelo.trim()))
+                .findFirst()
+                .orElse(null);
     }
 
     /**
@@ -221,6 +226,80 @@ public class Aerolinea {
      */
     public HashSet<Persona> getPasajerosConReservaActiva() {
         return new HashSet<>(pasajerosConReservaActiva);
+    }
+
+    /**
+     * @brief Obtiene una nueva lista con los vuelos programados.
+     *
+     * Este método filtra la lista interna de vuelos y retorna una nueva lista
+     * que contiene únicamente aquellos cuyo estado es PROGRAMADO.
+     *
+     * Se utiliza programación funcional mediante:
+     * - stream()
+     * - filter()
+     * - collect(Collectors.toList())
+     *
+     * @return Lista nueva con los vuelos programados.
+     */
+    public List<Vuelo> obtenerVuelosProgramadosStream() {
+        return vuelos.stream()
+                .filter(vuelo -> vuelo.getEstado() == EstadoVuelo.PROGRAMADO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * @brief Muestra los vuelos programados usando referencia a método.
+     *
+     * Este método reutiliza el filtrado de vuelos programados y muestra
+     * cada vuelo por consola mediante una referencia a método.
+     *
+     * Se utiliza:
+     * - forEach()
+     * - referencia a método: Vuelo::mostrarInfo
+     */
+    public void mostrarVuelosProgramadosStream() {
+        obtenerVuelosProgramadosStream()
+                .forEach(Vuelo::mostrarInfo);
+    }
+
+    /**
+     * @brief Muestra los vuelos ordenados alfabéticamente por destino.
+     *
+     * Este método ordena los vuelos usando Stream.sorted() junto con una
+     * expresión lambda. El orden original de la lista interna no se modifica.
+     *
+     * Se utiliza:
+     * - stream()
+     * - sorted()
+     * - lambda
+     * - forEach()
+     * - referencia a método: Vuelo::mostrarInfo
+     */
+    public void mostrarVuelosOrdenadosPorDestinoStream() {
+        vuelos.stream()
+                .sorted((vuelo1, vuelo2) -> vuelo1.getDestino().compareToIgnoreCase(vuelo2.getDestino()))
+                .forEach(Vuelo::mostrarInfo);
+    }
+
+    /**
+     * @brief Calcula el total de asientos ocupados en vuelos programados.
+     *
+     * Este método filtra los vuelos programados y luego obtiene la cantidad
+     * de asientos ocupados de cada uno para calcular la suma total.
+     *
+     * Se utiliza:
+     * - stream()
+     * - filter()
+     * - mapToInt()
+     * - sum()
+     *
+     * @return Total de asientos ocupados en todos los vuelos programados.
+     */
+    public int calcularTotalAsientosOcupadosProgramadosStream() {
+        return vuelos.stream()
+                .filter(vuelo -> vuelo.getEstado() == EstadoVuelo.PROGRAMADO)
+                .mapToInt(Vuelo::getAsientosOcupados)
+                .sum();
     }
 
     /**
