@@ -90,6 +90,11 @@ public abstract class Vuelo implements IOperable, Serializable {
         return capacidad;
     }
 
+    /**
+     * @brief Establece la capacidad del vuelo asegurando que no sea menor a los pasajeros ya reservados.
+     * @param capacidad Nueva capacidad del vuelo.
+     * @throws IllegalArgumentException Si la capacidad es inválida o menor a los pasajeros actuales.
+     */
     public void setCapacidad(int capacidad) {
         if (capacidad <= 0) {
             throw new IllegalArgumentException("La capacidad debe ser mayor que cero.");
