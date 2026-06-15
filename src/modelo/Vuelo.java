@@ -109,6 +109,11 @@ public abstract class Vuelo implements IOperable, Serializable {
         return estado;
     }
 
+    /**
+     * @brief Cambia el estado del vuelo asegurando que no sea nulo.
+     * @param estado Nuevo estado del vuelo.
+     * @throws IllegalArgumentException Si el estado es nulo.
+     */
     public void setEstado(EstadoVuelo estado) {
         if (estado == null) {
             throw new IllegalArgumentException("El estado no puede ser nulo.");
