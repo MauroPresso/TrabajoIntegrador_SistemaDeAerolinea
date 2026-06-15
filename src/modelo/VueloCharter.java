@@ -49,10 +49,10 @@ public class VueloCharter extends Vuelo {
     }
 
     /**
-    * @brief Establece el costo total del vuelo charter.
-    * @param costoTotal Costo total del vuelo.
-    * @throws IllegalArgumentException Si el costo total es negativo.
-    */
+     * @brief Establece el costo total del vuelo charter.
+     * @param costoTotal Costo total del vuelo.
+     * @throws IllegalArgumentException Si el costo total es negativo.
+     */
     public void setCostoTotal(double costoTotal) {
         if (costoTotal < 0) {
             throw new IllegalArgumentException("El costo total no puede ser negativo.");
