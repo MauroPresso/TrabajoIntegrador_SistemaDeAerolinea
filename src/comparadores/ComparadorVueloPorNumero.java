@@ -8,8 +8,9 @@ import modelo.Vuelo;
  * @class ComparadorVueloPorNumero
  * @brief Comparator externo para ordenar vuelos por número.
  *
- * Aunque Vuelo ya posee orden natural por número, este comparador externo
- * se incluye para demostrar explícitamente el uso de Comparator.
+ * Aunque Vuelo ya posee orden natural por número mediante Comparable,
+ * este comparador externo se incluye para demostrar explícitamente
+ * el uso de Comparator.
  */
 public class ComparadorVueloPorNumero implements Comparator<Vuelo> {
 
@@ -22,6 +23,6 @@ public class ComparadorVueloPorNumero implements Comparator<Vuelo> {
      */
     @Override
     public int compare(Vuelo vuelo1, Vuelo vuelo2) {
-        return Integer.compare(vuelo1.getNumeroVuelo(), vuelo2.getNumeroVuelo());
+        return vuelo1.getNumero().compareToIgnoreCase(vuelo2.getNumero());
     }
 }
