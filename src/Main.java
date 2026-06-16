@@ -1,4 +1,7 @@
+import interfaces.IRepositorio;
 import menu.Menu;
+import modelo.Vuelo;
+import repositorio.RepositorioVuelosArchivo;
 import servicio.Aerolinea;
 
 /**
@@ -10,17 +13,23 @@ import servicio.Aerolinea;
  * @class Main
  * @brief Clase principal desde donde inicia la aplicación.
  *
- * Crea la instancia de Aerolinea y ejecuta el menú interactivo por consola.
+ * Crea el repositorio de vuelos, inicializa la aerolínea con persistencia
+ * y ejecuta el menú interactivo por consola.
  */
 public class Main {
 
     /**
      * @brief Método principal del programa.
      *
+     * Inicializa un repositorio basado en archivo para permitir que la lista
+     * de vuelos se cargue desde data/vuelos.dat al iniciar el sistema.
+     *
      * @param args Argumentos de consola no utilizados.
      */
     public static void main(String[] args) {
-        Aerolinea aerolinea = new Aerolinea("Aerolínea IFES");
+        IRepositorio<Vuelo> repositorioVuelos = new RepositorioVuelosArchivo();
+
+        Aerolinea aerolinea = new Aerolinea("Aerolínea IFES", repositorioVuelos);
 
         Menu menu = new Menu(aerolinea);
         menu.iniciar();

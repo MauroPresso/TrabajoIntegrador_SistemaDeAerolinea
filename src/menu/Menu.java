@@ -9,6 +9,7 @@ import modelo.VueloInternacional;
 import modelo.VueloNacional;
 import servicio.Aerolinea;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -29,6 +30,9 @@ import java.util.Scanner;
  * Todos los ingresos por teclado se validan mediante métodos auxiliares para
  * evitar datos vacíos, números negativos, formatos inválidos, fechas incorrectas,
  * opciones fuera de rango o valores incoherentes.
+ *
+ * Además, dispara el guardado de vuelos luego de las operaciones que modifican
+ * la lista de vuelos o sus reservas.
  */
 public class Menu {
 
@@ -58,6 +62,15 @@ public class Menu {
     private final Scanner scanner;
 
     /**
+     * @brief Indica si existen cambios pendientes de guardado.
+     *
+     * Se activa cuando se agrega un vuelo, se reserva un vuelo o se cancela
+     * una reserva. Si un guardado falla, queda en true para volver a intentar
+     * al finalizar el sistema.
+     */
+    private boolean cambiosSinGuardar;
+
+    /**
      * @brief Constructor del menú.
      *
      * @param aerolinea Servicio principal del sistema.
@@ -65,22 +78,28 @@ public class Menu {
     public Menu(Aerolinea aerolinea) {
         this.aerolinea = aerolinea;
         this.scanner = new Scanner(System.in);
+        this.cambiosSinGuardar = false;
     }
 
     /**
      * @brief Inicia la ejecución del menú interactivo.
      *
      * Muestra las opciones disponibles hasta que el usuario decide salir.
+     * Al finalizar, intenta guardar cualquier cambio que haya quedado pendiente.
      */
     public void iniciar() {
-        int opcion;
+        int opcion = OPCION_SALIR;
 
-        do {
-            mostrarOpciones();
-            opcion = leerEnteroEnRango("Seleccione una opción: ",
-                    OPCION_SALIR, OPCION_MAXIMA_MENU);
-            ejecutarOpcion(opcion);
-        } while (opcion != OPCION_SALIR);
+        try {
+            do {
+                mostrarOpciones();
+                opcion = leerEnteroEnRango("Seleccione una opción: ",
+                        OPCION_SALIR, OPCION_MAXIMA_MENU);
+                ejecutarOpcion(opcion);
+            } while (opcion != OPCION_SALIR);
+        } finally {
+            guardarCambiosPendientes("al finalizar el sistema");
+        }
     }
 
     /**
@@ -170,6 +189,7 @@ public class Menu {
             Vuelo vuelo = crearVueloSegunTipo(tipoVuelo, numero, origen, destino, fecha, capacidad);
             aerolinea.agregarVuelo(vuelo);
             System.out.println("Vuelo agregado correctamente.");
+            marcarCambiosYGuardar("agregar vuelo");
         } catch (IllegalArgumentException e) {
             System.out.println("No se pudo agregar el vuelo: " + e.getMessage());
         }
@@ -212,6 +232,10 @@ public class Menu {
 
     /**
      * @brief Permite registrar un pasajero en la aerolínea.
+     *
+     * El requerimiento de serialización actual persiste la lista de vuelos.
+     * Por eso, los pasajeros quedan persistidos cuando forman parte de una
+     * reserva dentro de un vuelo guardado.
      */
     private void registrarPasajero() {
         System.out.println();
@@ -291,6 +315,7 @@ public class Menu {
 
             aerolinea.reservarVuelo(dniPasajero, numeroVuelo);
             System.out.println("Reserva realizada correctamente.");
+            marcarCambiosYGuardar("reservar vuelo");
 
         } catch (VueloNoDisponibleException e) {
             System.out.println("No se pudo reservar el vuelo: " + e.getMessage());
@@ -346,8 +371,41 @@ public class Menu {
         try {
             aerolinea.cancelarReserva(dniPasajero, numeroVuelo);
             System.out.println("Operación de cancelación procesada.");
+            marcarCambiosYGuardar("cancelar reserva");
         } catch (IllegalArgumentException e) {
             System.out.println("Error al cancelar la reserva: " + e.getMessage());
+        }
+    }
+
+    /**
+     * @brief Marca que hubo cambios y ejecuta el guardado.
+     *
+     * @param operacion Nombre de la operación realizada.
+     */
+    private void marcarCambiosYGuardar(String operacion) {
+        cambiosSinGuardar = true;
+        guardarCambiosPendientes("luego de " + operacion);
+    }
+
+    /**
+     * @brief Guarda los vuelos si existen cambios pendientes.
+     *
+     * Si el guardado se realiza correctamente, limpia la marca de cambios
+     * pendientes. Si falla, la marca queda activa para intentar guardar al salir.
+     *
+     * @param contexto Texto que indica en qué momento se intenta guardar.
+     */
+    private void guardarCambiosPendientes(String contexto) {
+        if (!cambiosSinGuardar) {
+            return;
+        }
+
+        try {
+            aerolinea.guardarVuelos();
+            cambiosSinGuardar = false;
+            System.out.println("Vuelos guardados correctamente " + contexto + ".");
+        } catch (IOException e) {
+            System.out.println("No se pudieron guardar los vuelos " + contexto + ": " + e.getMessage());
         }
     }
 
@@ -746,5 +804,4 @@ public class Menu {
         return Character.toUpperCase(palabraMinuscula.charAt(0))
                 + palabraMinuscula.substring(1);
     }
-
 }
