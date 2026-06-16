@@ -48,56 +48,6 @@ public class Menu {
     private static final int CAPACIDAD_MAXIMA_VUELO = 999;
 
     /**
-     * @brief Provincias argentinas disponibles para vuelos nacionales.
-     */
-    private static final String[] PROVINCIAS_ARGENTINAS = {
-            "Buenos Aires",
-            "Catamarca",
-            "Chaco",
-            "Chubut",
-            "Córdoba",
-            "Corrientes",
-            "Entre Ríos",
-            "Formosa",
-            "Jujuy",
-            "La Pampa",
-            "La Rioja",
-            "Mendoza",
-            "Misiones",
-            "Neuquén",
-            "Río Negro",
-            "Salta",
-            "San Juan",
-            "San Luis",
-            "Santa Cruz",
-            "Santa Fe",
-            "Santiago del Estero",
-            "Tierra del Fuego",
-            "Tucumán",
-            "Ciudad Autónoma de Buenos Aires"
-    };
-
-    /**
-     * @brief Países frecuentes disponibles para vuelos internacionales.
-     */
-    private static final String[] PAISES_FRECUENTES = {
-            "Chile",
-            "Brasil",
-            "Uruguay",
-            "Paraguay",
-            "Bolivia",
-            "Perú",
-            "Colombia",
-            "México",
-            "Estados Unidos",
-            "España",
-            "Italia",
-            "Francia",
-            "Alemania",
-            "Reino Unido"
-    };
-
-    /**
      * @brief Servicio principal de la aerolínea.
      */
     private final Aerolinea aerolinea;
@@ -211,8 +161,8 @@ public class Menu {
             numero = leerCodigoVuelo("Ingrese otro número de vuelo: ");
         }
 
-        String origen = leerTextoAlfabetico("Origen: ");
-        String destino = leerTextoAlfabetico("Destino: ");
+        String origen = leerTextoAlfabetico("Ciudad o aeropuerto de origen: ");
+        String destino = leerTextoAlfabetico("Ciudad o aeropuerto de destino: ");
         String fecha = leerFechaValida("Fecha del vuelo (yyyy-MM-dd): ");
         int capacidad = leerEnteroEnRango("Capacidad: ", 1, CAPACIDAD_MAXIMA_VUELO);
 
@@ -240,11 +190,11 @@ public class Menu {
                                       String destino, String fecha, int capacidad) {
         switch (tipoVuelo) {
             case 1:
-                String provinciaDestino = seleccionarProvinciaArgentina();
+                String provinciaDestino = leerTextoAlfabetico("Provincia de destino: ");
                 return new VueloNacional(numero, origen, destino, fecha, capacidad, provinciaDestino);
 
             case 2:
-                String paisDestino = seleccionarPaisDestino();
+                String paisDestino = leerTextoAlfabetico("País de destino: ");
                 boolean requierePasaporte = leerBooleano("¿Requiere pasaporte? (S/N): ");
                 return new VueloInternacional(numero, origen, destino, fecha, capacidad,
                         paisDestino, requierePasaporte);
@@ -443,50 +393,6 @@ public class Menu {
         int total = aerolinea.calcularTotalAsientosOcupadosProgramadosStream();
 
         System.out.println("Total de asientos ocupados en vuelos programados: " + total);
-    }
-
-    /**
-     * @brief Permite seleccionar una provincia argentina desde una lista cerrada.
-     *
-     * @return Provincia seleccionada.
-     */
-    private String seleccionarProvinciaArgentina() {
-        System.out.println();
-        System.out.println("Seleccione provincia de destino:");
-
-        for (int i = 0; i < PROVINCIAS_ARGENTINAS.length; i++) {
-            System.out.println((i + 1) + ". " + PROVINCIAS_ARGENTINAS[i]);
-        }
-
-        int opcion = leerEnteroEnRango("Provincia: ", 1, PROVINCIAS_ARGENTINAS.length);
-        return PROVINCIAS_ARGENTINAS[opcion - 1];
-    }
-
-    /**
-     * @brief Permite seleccionar un país de destino desde una lista guiada.
-     *
-     * También permite ingresar otro país manualmente.
-     *
-     * @return País seleccionado.
-     */
-    private String seleccionarPaisDestino() {
-        System.out.println();
-        System.out.println("Seleccione país de destino:");
-
-        for (int i = 0; i < PAISES_FRECUENTES.length; i++) {
-            System.out.println((i + 1) + ". " + PAISES_FRECUENTES[i]);
-        }
-
-        int opcionOtroPais = PAISES_FRECUENTES.length + 1;
-        System.out.println(opcionOtroPais + ". Otro país");
-
-        int opcion = leerEnteroEnRango("País: ", 1, opcionOtroPais);
-
-        if (opcion == opcionOtroPais) {
-            return leerTextoAlfabetico("Ingrese país de destino: ");
-        }
-
-        return PAISES_FRECUENTES[opcion - 1];
     }
 
     /**
@@ -707,7 +613,7 @@ public class Menu {
                 return normalizarCapitalizacion(entrada);
             }
 
-            System.out.println("Debe ingresar texto válido, sin números ni símbolos extraños.");
+            System.out.println("Debe ingresar texto válido. Ejemplos: Neuquén, Buenos Aires, Córdoba.");
         }
     }
 
@@ -812,9 +718,6 @@ public class Menu {
     /**
      * @brief Normaliza un texto colocando cada palabra con inicial mayúscula.
      *
-     * Conserva en mayúsculas posibles siglas de dos a cinco letras, como
-     * USA, ARG, IFES o EEUU.
-     *
      * @param texto Texto ingresado por el usuario.
      * @return Texto normalizado.
      */
@@ -838,17 +741,10 @@ public class Menu {
      * @return Palabra normalizada.
      */
     private String normalizarPalabra(String palabra) {
-        String palabraSinPuntos = palabra.replace(".", "");
-        String palabraMayuscula = palabraSinPuntos.toUpperCase();
-
-        if (palabraMayuscula.matches("^[A-Z]{2,5}$")
-                && palabra.equals(palabra.toUpperCase())) {
-            return palabra.toUpperCase();
-        }
-
         String palabraMinuscula = palabra.toLowerCase();
 
         return Character.toUpperCase(palabraMinuscula.charAt(0))
                 + palabraMinuscula.substring(1);
     }
+
 }
