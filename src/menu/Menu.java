@@ -2,12 +2,15 @@ package menu;
 
 import excepciones.VueloNoDisponibleException;
 import modelo.Pasajero;
+import modelo.Persona;
 import modelo.Vuelo;
 import modelo.VueloCharter;
 import modelo.VueloInternacional;
 import modelo.VueloNacional;
 import servicio.Aerolinea;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Scanner;
 
@@ -22,6 +25,10 @@ import java.util.Scanner;
  *
  * Esta clase utiliza Scanner para leer datos ingresados por teclado y delega
  * las operaciones principales en la clase Aerolinea.
+ *
+ * Todos los ingresos por teclado se validan mediante métodos auxiliares para
+ * evitar datos vacíos, números negativos, formatos inválidos, fechas incorrectas,
+ * opciones fuera de rango o valores incoherentes.
  */
 public class Menu {
 
@@ -29,6 +36,66 @@ public class Menu {
      * @brief Opción utilizada para finalizar el menú.
      */
     private static final int OPCION_SALIR = 0;
+
+    /**
+     * @brief Opción máxima disponible en el menú principal.
+     */
+    private static final int OPCION_MAXIMA_MENU = 7;
+
+    /**
+     * @brief Capacidad máxima aceptada para un vuelo.
+     */
+    private static final int CAPACIDAD_MAXIMA_VUELO = 999;
+
+    /**
+     * @brief Provincias argentinas disponibles para vuelos nacionales.
+     */
+    private static final String[] PROVINCIAS_ARGENTINAS = {
+            "Buenos Aires",
+            "Catamarca",
+            "Chaco",
+            "Chubut",
+            "Córdoba",
+            "Corrientes",
+            "Entre Ríos",
+            "Formosa",
+            "Jujuy",
+            "La Pampa",
+            "La Rioja",
+            "Mendoza",
+            "Misiones",
+            "Neuquén",
+            "Río Negro",
+            "Salta",
+            "San Juan",
+            "San Luis",
+            "Santa Cruz",
+            "Santa Fe",
+            "Santiago del Estero",
+            "Tierra del Fuego",
+            "Tucumán",
+            "Ciudad Autónoma de Buenos Aires"
+    };
+
+    /**
+     * @brief Países frecuentes disponibles para vuelos internacionales.
+     */
+    private static final String[] PAISES_FRECUENTES = {
+            "Chile",
+            "Brasil",
+            "Uruguay",
+            "Paraguay",
+            "Bolivia",
+            "Perú",
+            "Colombia",
+            "México",
+            "Estados Unidos",
+            "España",
+            "Italia",
+            "Francia",
+            "Alemania",
+            "Reino Unido"
+    };
 
     /**
      * @brief Servicio principal de la aerolínea.
@@ -60,7 +127,8 @@ public class Menu {
 
         do {
             mostrarOpciones();
-            opcion = leerEntero("Seleccione una opción: ");
+            opcion = leerEnteroEnRango("Seleccione una opción: ",
+                    OPCION_SALIR, OPCION_MAXIMA_MENU);
             ejecutarOpcion(opcion);
         } while (opcion != OPCION_SALIR);
     }
@@ -116,7 +184,7 @@ public class Menu {
                 System.out.println("Saliendo del sistema...");
                 break;
             default:
-                System.out.println("Opción inválida. Intente nuevamente.");
+                System.out.println("Opción inválida.");
                 break;
         }
     }
@@ -124,8 +192,8 @@ public class Menu {
     /**
      * @brief Permite agregar un vuelo nacional, internacional o charter.
      *
-     * Solicita los datos comunes del vuelo y luego los datos específicos
-     * según el tipo seleccionado.
+     * Solicita primero el tipo de vuelo y valida que sea correcto antes
+     * de pedir el resto de los datos.
      */
     private void agregarVuelo() {
         System.out.println();
@@ -134,31 +202,24 @@ public class Menu {
         System.out.println("2. Vuelo internacional");
         System.out.println("3. Vuelo charter");
 
-        int tipoVuelo = leerEntero("Seleccione el tipo de vuelo: ");
+        int tipoVuelo = leerEnteroEnRango("Seleccione el tipo de vuelo: ", 1, 3);
 
-        String numero = leerTextoObligatorio("Número de vuelo: ");
+        String numero = leerCodigoVuelo("Número de vuelo: ");
 
-        if (aerolinea.buscarVueloPorNumero(numero) != null) {
+        while (aerolinea.buscarVueloPorNumero(numero) != null) {
             System.out.println("Ya existe un vuelo con ese número.");
-            return;
+            numero = leerCodigoVuelo("Ingrese otro número de vuelo: ");
         }
 
-        String origen = leerTextoObligatorio("Origen: ");
-        String destino = leerTextoObligatorio("Destino: ");
-        String fecha = leerTextoObligatorio("Fecha: ");
-        int capacidad = leerEntero("Capacidad: ");
+        String origen = leerTextoAlfabetico("Origen: ");
+        String destino = leerTextoAlfabetico("Destino: ");
+        String fecha = leerFechaValida("Fecha del vuelo (yyyy-MM-dd): ");
+        int capacidad = leerEnteroEnRango("Capacidad: ", 1, CAPACIDAD_MAXIMA_VUELO);
 
         try {
             Vuelo vuelo = crearVueloSegunTipo(tipoVuelo, numero, origen, destino, fecha, capacidad);
-
-            if (vuelo == null) {
-                System.out.println("Tipo de vuelo inválido.");
-                return;
-            }
-
             aerolinea.agregarVuelo(vuelo);
             System.out.println("Vuelo agregado correctamente.");
-
         } catch (IllegalArgumentException e) {
             System.out.println("No se pudo agregar el vuelo: " + e.getMessage());
         }
@@ -173,57 +234,54 @@ public class Menu {
      * @param destino Destino del vuelo.
      * @param fecha Fecha del vuelo.
      * @param capacidad Capacidad máxima del vuelo.
-     * @return Vuelo creado o null si el tipo es inválido.
+     * @return Vuelo creado.
      */
     private Vuelo crearVueloSegunTipo(int tipoVuelo, String numero, String origen,
                                       String destino, String fecha, int capacidad) {
         switch (tipoVuelo) {
             case 1:
-                String provinciaDestino = leerTextoObligatorio("Provincia de destino: ");
+                String provinciaDestino = seleccionarProvinciaArgentina();
                 return new VueloNacional(numero, origen, destino, fecha, capacidad, provinciaDestino);
 
             case 2:
-                String paisDestino = leerTextoObligatorio("País de destino: ");
+                String paisDestino = seleccionarPaisDestino();
                 boolean requierePasaporte = leerBooleano("¿Requiere pasaporte? (S/N): ");
                 return new VueloInternacional(numero, origen, destino, fecha, capacidad,
                         paisDestino, requierePasaporte);
 
             case 3:
-                String empresaContratante = leerTextoObligatorio("Empresa contratante: ");
-                double costoTotal = leerDouble("Costo total: ");
+                String empresaContratante = leerTextoEmpresa("Empresa contratante: ");
+                double costoTotal = leerDoubleNoNegativo("Costo total: ");
                 return new VueloCharter(numero, origen, destino, fecha, capacidad,
                         empresaContratante, costoTotal);
 
             default:
-                return null;
+                throw new IllegalArgumentException("Tipo de vuelo inválido.");
         }
     }
 
     /**
      * @brief Permite registrar un pasajero en la aerolínea.
-     *
-     * Crea un objeto Pasajero y lo registra mediante el método registrarPersona()
-     * de la clase Aerolinea.
      */
     private void registrarPasajero() {
         System.out.println();
         System.out.println("--------- REGISTRAR PASAJERO ---------");
 
-        int dni = leerEntero("DNI: ");
-        String nombre = leerTextoObligatorio("Nombre: ");
-        String apellido = leerTextoObligatorio("Apellido: ");
-        String numeroPasaporte = leerTextoOpcional("Número de pasaporte (opcional): ");
+        int dni = leerDni("DNI: ");
+
+        while (aerolinea.buscarPersonaPorDni(dni) != null) {
+            System.out.println("Ya existe una persona registrada con ese DNI.");
+            dni = leerDni("Ingrese otro DNI: ");
+        }
+
+        String nombre = leerTextoAlfabetico("Nombre: ");
+        String apellido = leerTextoAlfabetico("Apellido: ");
+        String numeroPasaporte = leerPasaporteOpcional("Número de pasaporte (opcional): ");
 
         try {
             Pasajero pasajero = new Pasajero(dni, nombre, apellido, numeroPasaporte);
-            boolean registrado = aerolinea.registrarPersona(pasajero);
-
-            if (registrado) {
-                System.out.println("Pasajero registrado correctamente.");
-            } else {
-                System.out.println("Ya existe una persona registrada con ese DNI.");
-            }
-
+            aerolinea.registrarPersona(pasajero);
+            System.out.println("Pasajero registrado correctamente.");
         } catch (IllegalArgumentException e) {
             System.out.println("No se pudo registrar el pasajero: " + e.getMessage());
         }
@@ -232,19 +290,57 @@ public class Menu {
     /**
      * @brief Permite reservar un vuelo para un pasajero registrado.
      *
-     * Maneja la excepción checked VueloNoDisponibleException cuando el vuelo
-     * está en vuelo, cancelado o sin asientos disponibles.
+     * Valida que existan pasajeros y vuelos cargados, que el pasajero exista,
+     * que el vuelo exista, que no haya una reserva duplicada y que el usuario
+     * confirme la operación antes de realizarla.
      */
     private void reservarVuelo() {
         System.out.println();
         System.out.println("--------- RESERVAR VUELO ---------");
 
+        if (!existeAlMenosUnPasajeroRegistrado()) {
+            System.out.println("No hay pasajeros registrados.");
+            return;
+        }
+
+        if (aerolinea.getVuelos().isEmpty()) {
+            System.out.println("No hay vuelos cargados.");
+            return;
+        }
+
         try {
-            int dniPasajero = leerEntero("DNI del pasajero: ");
-            String numeroVuelo = leerTextoObligatorio("Número de vuelo: ");
+            int dniPasajero = leerDniPasajeroRegistrado("DNI del pasajero: ");
+            String numeroVuelo = leerCodigoVueloExistente("Número de vuelo: ");
+
+            Pasajero pasajero = obtenerPasajeroPorDni(dniPasajero);
+            Vuelo vuelo = aerolinea.buscarVueloPorNumero(numeroVuelo);
+
+            if (pasajero.tieneVueloReservado(vuelo)) {
+                System.out.println("El pasajero ya tiene una reserva en ese vuelo.");
+                return;
+            }
+
+            if (!pasajeroTienePasaporteSiElVueloLoRequiere(pasajero, vuelo)) {
+                System.out.println("El vuelo requiere pasaporte y el pasajero no tiene pasaporte cargado.");
+                return;
+            }
+
+            System.out.println();
+            System.out.println("Datos del vuelo seleccionado:");
+            vuelo.mostrarInfo();
+
+            System.out.println();
+            pasajero.mostrarInfo();
+
+            boolean confirma = leerBooleano("¿Confirma la reserva? (S/N): ");
+
+            if (!confirma) {
+                System.out.println("Reserva cancelada por el usuario.");
+                return;
+            }
 
             aerolinea.reservarVuelo(dniPasajero, numeroVuelo);
-            System.out.println("Operación de reserva procesada.");
+            System.out.println("Reserva realizada correctamente.");
 
         } catch (VueloNoDisponibleException e) {
             System.out.println("No se pudo reservar el vuelo: " + e.getMessage());
@@ -257,13 +353,45 @@ public class Menu {
 
     /**
      * @brief Permite cancelar una reserva existente.
+     *
+     * Valida que el pasajero y el vuelo existan, que la reserva exista y pide
+     * confirmación antes de cancelarla.
      */
     private void cancelarReserva() {
         System.out.println();
         System.out.println("--------- CANCELAR RESERVA ---------");
 
-        int dniPasajero = leerEntero("DNI del pasajero: ");
-        String numeroVuelo = leerTextoObligatorio("Número de vuelo: ");
+        if (!existeAlMenosUnPasajeroRegistrado()) {
+            System.out.println("No hay pasajeros registrados.");
+            return;
+        }
+
+        if (aerolinea.getVuelos().isEmpty()) {
+            System.out.println("No hay vuelos cargados.");
+            return;
+        }
+
+        int dniPasajero = leerDniPasajeroRegistrado("DNI del pasajero: ");
+        String numeroVuelo = leerCodigoVueloExistente("Número de vuelo: ");
+
+        Pasajero pasajero = obtenerPasajeroPorDni(dniPasajero);
+        Vuelo vuelo = aerolinea.buscarVueloPorNumero(numeroVuelo);
+
+        if (!pasajero.tieneVueloReservado(vuelo)) {
+            System.out.println("El pasajero no tiene una reserva en ese vuelo.");
+            return;
+        }
+
+        System.out.println();
+        System.out.println("Reserva encontrada:");
+        vuelo.mostrarInfo();
+
+        boolean confirma = leerBooleano("¿Confirma la cancelación de la reserva? (S/N): ");
+
+        if (!confirma) {
+            System.out.println("Cancelación abortada por el usuario.");
+            return;
+        }
 
         try {
             aerolinea.cancelarReserva(dniPasajero, numeroVuelo);
@@ -318,7 +446,95 @@ public class Menu {
     }
 
     /**
+     * @brief Permite seleccionar una provincia argentina desde una lista cerrada.
+     *
+     * @return Provincia seleccionada.
+     */
+    private String seleccionarProvinciaArgentina() {
+        System.out.println();
+        System.out.println("Seleccione provincia de destino:");
+
+        for (int i = 0; i < PROVINCIAS_ARGENTINAS.length; i++) {
+            System.out.println((i + 1) + ". " + PROVINCIAS_ARGENTINAS[i]);
+        }
+
+        int opcion = leerEnteroEnRango("Provincia: ", 1, PROVINCIAS_ARGENTINAS.length);
+        return PROVINCIAS_ARGENTINAS[opcion - 1];
+    }
+
+    /**
+     * @brief Permite seleccionar un país de destino desde una lista guiada.
+     *
+     * También permite ingresar otro país manualmente.
+     *
+     * @return País seleccionado.
+     */
+    private String seleccionarPaisDestino() {
+        System.out.println();
+        System.out.println("Seleccione país de destino:");
+
+        for (int i = 0; i < PAISES_FRECUENTES.length; i++) {
+            System.out.println((i + 1) + ". " + PAISES_FRECUENTES[i]);
+        }
+
+        int opcionOtroPais = PAISES_FRECUENTES.length + 1;
+        System.out.println(opcionOtroPais + ". Otro país");
+
+        int opcion = leerEnteroEnRango("País: ", 1, opcionOtroPais);
+
+        if (opcion == opcionOtroPais) {
+            return leerTextoAlfabetico("Ingrese país de destino: ");
+        }
+
+        return PAISES_FRECUENTES[opcion - 1];
+    }
+
+    /**
+     * @brief Verifica si existe al menos un pasajero registrado.
+     *
+     * @return true si existe al menos una persona de tipo Pasajero.
+     */
+    private boolean existeAlMenosUnPasajeroRegistrado() {
+        return aerolinea.getPersonasPorDni()
+                .values()
+                .stream()
+                .anyMatch(persona -> persona instanceof Pasajero);
+    }
+
+    /**
+     * @brief Obtiene un pasajero registrado a partir de su DNI.
+     *
+     * @param dni DNI del pasajero.
+     * @return Pasajero encontrado.
+     */
+    private Pasajero obtenerPasajeroPorDni(int dni) {
+        Persona persona = aerolinea.buscarPersonaPorDni(dni);
+        return (Pasajero) persona;
+    }
+
+    /**
+     * @brief Verifica si el pasajero tiene pasaporte cuando el vuelo lo requiere.
+     *
+     * @param pasajero Pasajero que desea reservar.
+     * @param vuelo Vuelo seleccionado.
+     * @return true si puede reservar según el requisito de pasaporte.
+     */
+    private boolean pasajeroTienePasaporteSiElVueloLoRequiere(Pasajero pasajero, Vuelo vuelo) {
+        if (vuelo instanceof VueloInternacional) {
+            VueloInternacional vueloInternacional = (VueloInternacional) vuelo;
+
+            if (vueloInternacional.isRequierePasaporte()) {
+                return !pasajero.getNumeroPasaporte().isEmpty();
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * @brief Lee un número entero desde consola.
+     *
+     * Repite la lectura hasta que el usuario ingrese un entero válido.
      *
      * @param mensaje Mensaje mostrado al usuario.
      * @return Número entero ingresado.
@@ -328,29 +544,104 @@ public class Menu {
             System.out.print(mensaje);
             String entrada = scanner.nextLine().trim();
 
+            if (!entrada.matches("-?\\d+")) {
+                System.out.println("Debe ingresar un número entero válido.");
+                continue;
+            }
+
             try {
                 return Integer.parseInt(entrada);
             } catch (NumberFormatException e) {
-                System.out.println("Debe ingresar un número entero válido.");
+                System.out.println("El número ingresado es demasiado grande.");
             }
         }
     }
 
     /**
-     * @brief Lee un número decimal desde consola.
-     *
-     * Acepta tanto punto como coma decimal.
+     * @brief Lee un número entero dentro de un rango determinado.
      *
      * @param mensaje Mensaje mostrado al usuario.
-     * @return Número decimal ingresado.
+     * @param minimo Valor mínimo permitido.
+     * @param maximo Valor máximo permitido.
+     * @return Número entero válido dentro del rango.
      */
-    private double leerDouble(String mensaje) {
+    private int leerEnteroEnRango(String mensaje, int minimo, int maximo) {
+        while (true) {
+            int valor = leerEntero(mensaje);
+
+            if (valor >= minimo && valor <= maximo) {
+                return valor;
+            }
+
+            System.out.println("Debe ingresar un número entre " + minimo + " y " + maximo + ".");
+        }
+    }
+
+    /**
+     * @brief Lee un DNI válido desde consola.
+     *
+     * Acepta únicamente números positivos de 7 u 8 dígitos.
+     *
+     * @param mensaje Mensaje mostrado al usuario.
+     * @return DNI válido.
+     */
+    private int leerDni(String mensaje) {
+        while (true) {
+            int dni = leerEntero(mensaje);
+
+            if (dni >= 1000000 && dni <= 99999999) {
+                return dni;
+            }
+
+            System.out.println("El DNI debe ser un número positivo de 7 u 8 dígitos.");
+        }
+    }
+
+    /**
+     * @brief Lee el DNI de un pasajero registrado.
+     *
+     * Repite la lectura hasta que el DNI exista en el sistema y corresponda
+     * a una persona de tipo Pasajero.
+     *
+     * @param mensaje Mensaje mostrado al usuario.
+     * @return DNI de un pasajero registrado.
+     */
+    private int leerDniPasajeroRegistrado(String mensaje) {
+        while (true) {
+            int dni = leerDni(mensaje);
+            Persona persona = aerolinea.buscarPersonaPorDni(dni);
+
+            if (persona == null) {
+                System.out.println("No existe una persona registrada con ese DNI.");
+            } else if (!(persona instanceof Pasajero)) {
+                System.out.println("La persona registrada con ese DNI no es pasajero.");
+            } else {
+                return dni;
+            }
+        }
+    }
+
+    /**
+     * @brief Lee un número decimal no negativo.
+     *
+     * Acepta coma o punto como separador decimal.
+     *
+     * @param mensaje Mensaje mostrado al usuario.
+     * @return Número decimal mayor o igual que cero.
+     */
+    private double leerDoubleNoNegativo(String mensaje) {
         while (true) {
             System.out.print(mensaje);
             String entrada = scanner.nextLine().trim().replace(",", ".");
 
             try {
-                return Double.parseDouble(entrada);
+                double valor = Double.parseDouble(entrada);
+
+                if (Double.isFinite(valor) && valor >= 0) {
+                    return valor;
+                }
+
+                System.out.println("Debe ingresar un número mayor o igual que cero.");
             } catch (NumberFormatException e) {
                 System.out.println("Debe ingresar un número decimal válido.");
             }
@@ -358,33 +649,141 @@ public class Menu {
     }
 
     /**
-     * @brief Lee un texto obligatorio desde consola.
+     * @brief Lee un código de vuelo válido.
+     *
+     * El formato aceptado es de dos a cuatro letras seguidas de uno a seis números.
+     * Ejemplos válidos: AR100, CH300, IFES25.
      *
      * @param mensaje Mensaje mostrado al usuario.
-     * @return Texto no vacío ingresado por el usuario.
+     * @return Código de vuelo normalizado en mayúsculas.
      */
-    private String leerTextoObligatorio(String mensaje) {
+    private String leerCodigoVuelo(String mensaje) {
         while (true) {
             System.out.print(mensaje);
-            String entrada = scanner.nextLine().trim();
+            String entrada = scanner.nextLine().trim().toUpperCase();
 
-            if (!entrada.isEmpty()) {
+            if (entrada.matches("^[A-Z]{2,4}\\d{1,6}$")) {
                 return entrada;
             }
 
-            System.out.println("El dato no puede estar vacío.");
+            System.out.println("Código inválido. Ejemplos válidos: AR100, CH300, IFES25.");
         }
     }
 
     /**
-     * @brief Lee un texto opcional desde consola.
+     * @brief Lee el código de un vuelo existente.
+     *
+     * Repite la lectura hasta que el vuelo exista en la aerolínea.
      *
      * @param mensaje Mensaje mostrado al usuario.
-     * @return Texto ingresado o cadena vacía.
+     * @return Código de un vuelo existente.
      */
-    private String leerTextoOpcional(String mensaje) {
-        System.out.print(mensaje);
-        return scanner.nextLine().trim();
+    private String leerCodigoVueloExistente(String mensaje) {
+        while (true) {
+            String numeroVuelo = leerCodigoVuelo(mensaje);
+
+            if (aerolinea.buscarVueloPorNumero(numeroVuelo) != null) {
+                return numeroVuelo;
+            }
+
+            System.out.println("No existe un vuelo registrado con ese número.");
+        }
+    }
+
+    /**
+     * @brief Lee un texto alfabético obligatorio.
+     *
+     * Acepta letras, espacios, tildes, puntos, apóstrofes y guiones.
+     *
+     * @param mensaje Mensaje mostrado al usuario.
+     * @return Texto válido normalizado.
+     */
+    private String leerTextoAlfabetico(String mensaje) {
+        while (true) {
+            System.out.print(mensaje);
+            String entrada = scanner.nextLine().trim();
+
+            if (entrada.matches("^[\\p{L} .'-]{2,50}$")) {
+                return normalizarCapitalizacion(entrada);
+            }
+
+            System.out.println("Debe ingresar texto válido, sin números ni símbolos extraños.");
+        }
+    }
+
+    /**
+     * @brief Lee un texto válido para el nombre de una empresa.
+     *
+     * Acepta letras, números, espacios y algunos símbolos comerciales comunes.
+     *
+     * @param mensaje Mensaje mostrado al usuario.
+     * @return Texto válido para empresa.
+     */
+    private String leerTextoEmpresa(String mensaje) {
+        while (true) {
+            System.out.print(mensaje);
+            String entrada = scanner.nextLine().trim();
+
+            if (entrada.matches("^[\\p{L}\\p{N} .,'&-]{2,80}$")) {
+                return normalizarCapitalizacion(entrada);
+            }
+
+            System.out.println("Debe ingresar un nombre de empresa válido.");
+        }
+    }
+
+    /**
+     * @brief Lee una fecha válida en formato ISO.
+     *
+     * El formato requerido es yyyy-MM-dd. Por ejemplo: 2026-06-20.
+     * Además, la fecha no puede ser anterior al día actual.
+     *
+     * @param mensaje Mensaje mostrado al usuario.
+     * @return Fecha válida como texto.
+     */
+    private String leerFechaValida(String mensaje) {
+        while (true) {
+            System.out.print(mensaje);
+            String entrada = scanner.nextLine().trim();
+
+            try {
+                LocalDate fecha = LocalDate.parse(entrada);
+
+                if (fecha.isBefore(LocalDate.now())) {
+                    System.out.println("La fecha del vuelo no puede ser anterior al día actual.");
+                } else {
+                    return fecha.toString();
+                }
+
+            } catch (DateTimeParseException e) {
+                System.out.println("Fecha inválida. Use el formato yyyy-MM-dd. Ejemplo: 2026-06-20.");
+            }
+        }
+    }
+
+    /**
+     * @brief Lee un número de pasaporte opcional.
+     *
+     * Permite dejar el campo vacío. Si se completa, debe ser alfanumérico.
+     *
+     * @param mensaje Mensaje mostrado al usuario.
+     * @return Pasaporte ingresado o cadena vacía.
+     */
+    private String leerPasaporteOpcional(String mensaje) {
+        while (true) {
+            System.out.print(mensaje);
+            String entrada = scanner.nextLine().trim().toUpperCase();
+
+            if (entrada.isEmpty()) {
+                return "";
+            }
+
+            if (entrada.matches("^[A-Z0-9-]{3,20}$")) {
+                return entrada;
+            }
+
+            System.out.println("Pasaporte inválido. Use letras, números o guiones. Ejemplo: A123456.");
+        }
     }
 
     /**
@@ -408,5 +807,48 @@ public class Menu {
 
             System.out.println("Debe ingresar S o N.");
         }
+    }
+
+    /**
+     * @brief Normaliza un texto colocando cada palabra con inicial mayúscula.
+     *
+     * Conserva en mayúsculas posibles siglas de dos a cinco letras, como
+     * USA, ARG, IFES o EEUU.
+     *
+     * @param texto Texto ingresado por el usuario.
+     * @return Texto normalizado.
+     */
+    private String normalizarCapitalizacion(String texto) {
+        String[] palabras = texto.trim().split("\\s+");
+        StringBuilder resultado = new StringBuilder();
+
+        for (String palabra : palabras) {
+            if (!palabra.isEmpty()) {
+                resultado.append(normalizarPalabra(palabra)).append(" ");
+            }
+        }
+
+        return resultado.toString().trim();
+    }
+
+    /**
+     * @brief Normaliza una palabra individual.
+     *
+     * @param palabra Palabra a normalizar.
+     * @return Palabra normalizada.
+     */
+    private String normalizarPalabra(String palabra) {
+        String palabraSinPuntos = palabra.replace(".", "");
+        String palabraMayuscula = palabraSinPuntos.toUpperCase();
+
+        if (palabraMayuscula.matches("^[A-Z]{2,5}$")
+                && palabra.equals(palabra.toUpperCase())) {
+            return palabra.toUpperCase();
+        }
+
+        String palabraMinuscula = palabra.toLowerCase();
+
+        return Character.toUpperCase(palabraMinuscula.charAt(0))
+                + palabraMinuscula.substring(1);
     }
 }
